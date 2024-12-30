@@ -6,8 +6,12 @@
 
 use std::cell::LazyCell;
 use std::sync::mpmc;
+#[allow(unused)]
+use std::sync::atomic::{ AtomicBool, Ordering };
 use std::fmt;
 use clap::Subcommand;
+#[allow(unused)]
+use chrono::{ Local, DateTime };
 use crossterm as ct;
 use ct::style::{ Stylize, StyledContent, Color as Colour };
 
@@ -28,8 +32,8 @@ pub macro warn_once  ( $($tt:tt)* ) { once!{ warn  !( $($tt)* ) } }
 pub macro error_once ( $($tt:tt)* ) { once!{ error !( $($tt)* ) } }
 pub macro fatal_once ( $($tt:tt)* ) { once!{ fatal !( $($tt)* ) } }
 pub macro once($expr:expr) { {
-    static ALREADY_HIT : ::std::sync::atomic::AtomicBool = ::std::sync::atomic::AtomicBool::new(false);
-    if (! ALREADY_HIT.swap(true, ::std::sync::atomic::Ordering::Relaxed)) {
+    static ALREADY_HIT : AtomicBool = AtomicBool::new(false);
+    if (! ALREADY_HIT.swap(true, Relaxed)) {
         $expr;
     }
 } }
@@ -38,7 +42,7 @@ macro log {
     ( $level:expr, $timestamp:expr => $($message:tt)* ) => { {
         let _ = LOGS.0.0.send(LogEntry {
             level    : $level,
-            time_fmt : Into::<::chrono::DateTime<::chrono::Local>>::into($timestamp).format("%Y-%m-%d.%H:%M:%S%.9f").to_string(),
+            time_fmt : Into::<DateTime<Local>>::into($timestamp).format("%Y-%m-%d.%H:%M:%S%.9f").to_string(),
             message  : format!( $($message)* )
         });
     } },
