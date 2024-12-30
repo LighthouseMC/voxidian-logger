@@ -38,16 +38,24 @@ pub macro once($expr:expr) { {
     }
 } }
 
+#[allow(unused_macros)]
 macro log {
     ( $level:expr, $timestamp:expr => $($message:tt)* ) => { {
-        let _ = LOGS.0.0.send(LogEntry {
-            level    : $level,
-            time_fmt : Into::<DateTime<Local>>::into($timestamp).format("%Y-%m-%d.%H:%M:%S%.9f").to_string(),
-            message  : format!( $($message)* )
-        });
+        __private::log(
+            $level,
+            Into::<DateTime<Local>>::into($timestamp).format("%Y-%m-%d.%H:%M:%S%.9f").to_string(),
+            format!( $($message)* )
+        );
     } },
     ( $level:expr, $($message:tt)* ) => {
         log!( $level, Local::now() => $($message)* )
+    }
+}
+#[doc(hidden)]
+mod __private {
+    use super::*;
+    pub fn log(level : LogLevel, time_fmt : String, message : String) {
+        let _ = LOGS.0.0.send(LogEntry { level, time_fmt, message });
     }
 }
 
