@@ -9,6 +9,7 @@ use std::sync::mpmc;
 #[allow(unused)]
 use std::sync::atomic::{ AtomicBool, Ordering };
 use std::fmt;
+use std::panic::Location;
 use clap::Subcommand;
 #[allow(unused)]
 use chrono::{ Local, DateTime };
@@ -42,6 +43,7 @@ pub macro once($expr:expr) { {
 macro log {
     ( $level:expr, $timestamp:expr => $($message:tt)* ) => { {
         __private::log(
+            Location::caller(),
             $level,
             Into::<DateTime<Local>>::into($timestamp).format("%Y-%m-%d.%H:%M:%S%.9f").to_string(),
             format!( $($message)* )
@@ -54,8 +56,8 @@ macro log {
 #[doc(hidden)]
 mod __private {
     use super::*;
-    pub fn log(level : LogLevel, time_fmt : String, message : String) {
-        let _ = LOGS.0.0.send(LogEntry { level, time_fmt, message });
+    pub fn log(location : &'static Location<'static>, level : LogLevel, time_fmt : String, message : String) {
+        let _ = LOGS.0.0.send(LogEntry { location, level, time_fmt, message });
     }
 }
 
@@ -98,6 +100,7 @@ impl fmt::Debug for LogLevel {
 }
 #[derive(Clone, Debug)]
 pub struct LogEntry {
+    pub location : &'static Location<'static>,
     pub level    : LogLevel,
     pub time_fmt : String,
     pub message  : String
