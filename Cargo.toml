@@ -6,7 +6,7 @@ description = "The logger for Lighthouse and its dependencies."
 license     = "LGPL-3.0"
 
 homepage   = "https://github.com/LighthouseMC"
-repository = "https://github.com/LighthouseMC/VoxidianLogger"
+repository = "https://github.com/LighthouseMC/voxidian-logger"
 
 edition = "2024"
 
