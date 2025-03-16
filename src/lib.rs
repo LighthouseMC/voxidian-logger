@@ -9,12 +9,23 @@ use std::sync::mpmc;
 #[allow(unused)]
 use std::sync::atomic::{ AtomicBool, Ordering };
 use std::fmt;
-use std::panic::Location;
 use clap::Subcommand;
 #[allow(unused)]
 use chrono::{ Local, DateTime };
 pub use crossterm as ct;
 use ct::style::{ Stylize, StyledContent, Color as Colour };
+
+#[allow(unused_imports, unused_macros)]
+mod strcp {
+    pub(crate) use const_str::{ split, concat, strip_suffix };
+    pub(crate) macro remove_suffix( $s:expr, $suffix:expr ) { {
+        const ORIGINAL : &'static str = $s;
+        match (strip_suffix!( ORIGINAL, $suffix )) {
+            Some(out) => out,
+            None      => ORIGINAL
+        } }
+    }
+}
 
 
 pub macro trace ( $($tt:tt)* ) { log!( LogLevel::Trace , $($tt)* ) }
@@ -40,10 +51,11 @@ pub macro once($expr:expr) { {
 } }
 
 #[allow(unused_macros)]
-macro log {
+pub macro log {
     ( $level:expr, $timestamp:expr => $($message:tt)* ) => { {
         __private::log(
-            Location::caller(),
+            strcp::concat!( env!("CARGO_PKG_NAME"), "/", strcp::remove_suffix!( strcp::split!( file!(), "src/" ).last().unwrap(), ".rs" ) ),
+            line!(), column!(),
             $level,
             Into::<DateTime<Local>>::into($timestamp).format("%Y-%m-%d.%H:%M:%S%.9f").to_string(),
             format!( $($message)* )
@@ -56,8 +68,8 @@ macro log {
 #[doc(hidden)]
 mod __private {
     use super::*;
-    pub fn log(location : &'static Location<'static>, level : LogLevel, time_fmt : String, message : String) {
-        let _ = LOGS.0.0.send(LogEntry { location, level, time_fmt, message });
+    pub fn log(module : &'static str, line : u32, column : u32, level : LogLevel, time_fmt : String, message : String) {
+        let _ = LOGS.0.0.send(LogEntry { module, line, column, level, time_fmt, message });
     }
 }
 
@@ -100,7 +112,9 @@ impl fmt::Debug for LogLevel {
 }
 #[derive(Clone, Debug)]
 pub struct LogEntry {
-    pub location : &'static Location<'static>,
+    pub module   : &'static str,
+    pub line     : u32,
+    pub column   : u32,
     pub level    : LogLevel,
     pub time_fmt : String,
     pub message  : String
@@ -128,3 +142,16 @@ impl LogLevel {
     } }
 
 }
+
+
+
+
+
+/*macro str_strip_suffix( $string:expr, $suffix:expr ) { {
+    const ORIGINAL : &'static str = $string;
+    const O_LEN    : usize        = ORIGINAL.len();
+    const SUFFIX   : &'static str = $suffix;
+    const S_LEN    : usize        = SUFFIX.len();
+    const SPLICED  : SplicedStr   = str_splice!( ORIGINAL, (O_LEN - S_LEN)..O_LEN, "" );
+    const OUTPUT   : &'static str = if (SPLICED.removed == SUFFIX) { SPLICED.output } else { ORIGINAL };
+} }*/
